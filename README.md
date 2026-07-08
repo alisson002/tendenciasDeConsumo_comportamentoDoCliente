@@ -124,7 +124,8 @@ Cada pergunta e respondida com duas abordagens: **Pandas** (Python) e **PostgreS
 >        ROUND(AVG("Review Rating")::numeric, 2) AS avaliacao_media,
 >        ROUND(AVG("Previous Purchases")::numeric, 2) AS compras_anteriores
 > FROM shopping_trends
-> GROUP BY "Gender";
+> GROUP BY "Gender"
+> ORDER BY "Gender";
 >
 > -- Distribuicao por categoria e genero
 > SELECT "Gender", "Category", COUNT(*) AS qtd
@@ -209,7 +210,7 @@ Cada pergunta e respondida com duas abordagens: **Pandas** (Python) e **PostgreS
 >         ticket_medio=('Purchase Amount (USD)', 'mean'),
 >         receita_total=('Purchase Amount (USD)', 'sum')
 >     )
->     .sort_values('qtd_vendas', ascending=False)
+>     .sort_values(['qtd_vendas', 'Item Purchased'], ascending=[False, True])
 >     .head(10)
 >     .round(2)
 > )
@@ -224,19 +225,22 @@ Cada pergunta e respondida com duas abordagens: **Pandas** (Python) e **PostgreS
 <br>
 
 > ```sql
+> -- Desempate alfabetico no ORDER BY: ha itens com a mesma quantidade
+> -- de vendas, e o desempate garante resultado deterministico,
+> -- identico ao do Pandas
 > SELECT "Item Purchased",
 >        COUNT(*) AS qtd_vendas,
 >        ROUND(AVG("Purchase Amount (USD)")::numeric, 2) AS ticket_medio,
 >        SUM("Purchase Amount (USD)") AS receita_total
 > FROM shopping_trends
 > GROUP BY "Item Purchased"
-> ORDER BY qtd_vendas DESC
+> ORDER BY qtd_vendas DESC, "Item Purchased"
 > LIMIT 10;
 > ```
 
 </details>
 
-**Insight:** **Blouse** e **Pants** lideram com **171 vendas** cada, seguidos por **Jewelry** (171). A distribuicao e extremamente equilibrada entre os 25 itens (variando de 140 a 171 vendas), sugerindo uma base de clientes com **demanda diversificada**. O ticket medio varia pouco ($56-62), com **Dress** apresentando o maior valor ($62,17) e **Jacket** o menor ($56,74).
+**Insight:** **Blouse**, **Pants** e **Jewelry** lideram empatados com **171 vendas** cada. A distribuicao e extremamente equilibrada entre os 25 itens (variando de **124 a 171** vendas), sugerindo uma base de clientes com **demanda diversificada**. O ticket medio varia pouco ($56-62), com **Dress** apresentando o maior valor ($62,17) e **Jacket** o menor ($56,74) entre os 10 mais vendidos.
 
 ---
 
@@ -256,6 +260,7 @@ Cada pergunta e respondida com duas abordagens: **Pandas** (Python) e **PostgreS
 >         receita_total=('Purchase Amount (USD)', 'sum'),
 >         ticket_medio=('Purchase Amount (USD)', 'mean')
 >     ).round(2)
+>     .sort_values('qtd_compras', ascending=False)
 > )
 >
 > # Quantidade de vendas por categoria em cada estacao
@@ -329,7 +334,8 @@ Cada pergunta e respondida com duas abordagens: **Pandas** (Python) e **PostgreS
 >        ROUND(AVG("Review Rating")::numeric, 2) AS avaliacao_media,
 >        ROUND(AVG("Previous Purchases")::numeric, 2) AS compras_anteriores
 > FROM shopping_trends
-> GROUP BY "Subscription Status";
+> GROUP BY "Subscription Status"
+> ORDER BY "Subscription Status";
 > ```
 
 </details>
@@ -654,7 +660,7 @@ Cada pergunta e respondida com duas abordagens: **Pandas** (Python) e **PostgreS
 >     df.groupby(['Season', 'Color'])
 >     .size()
 >     .reset_index(name='Qtd')
->     .sort_values(['Season', 'Qtd'], ascending=[True, False])
+>     .sort_values(['Season', 'Qtd', 'Color'], ascending=[True, False, True])
 >     .groupby('Season')
 >     .head(5)
 >     .reset_index(drop=True)
@@ -669,10 +675,14 @@ Cada pergunta e respondida com duas abordagens: **Pandas** (Python) e **PostgreS
 <br>
 
 > ```sql
+> -- Desempate alfabetico por "Color": ha cores com a mesma contagem
+> -- disputando o 5o lugar, e sem o desempate o resultado do
+> -- ROW_NUMBER() seria indeterminado (podendo divergir do Pandas)
 > WITH ranked AS (
 >     SELECT "Season", "Color", COUNT(*) AS qtd,
 >            ROW_NUMBER() OVER (
->                PARTITION BY "Season" ORDER BY COUNT(*) DESC
+>                PARTITION BY "Season"
+>                ORDER BY COUNT(*) DESC, "Color"
 >            ) AS rank
 >     FROM shopping_trends
 >     GROUP BY "Season", "Color"
@@ -680,7 +690,7 @@ Cada pergunta e respondida com duas abordagens: **Pandas** (Python) e **PostgreS
 > SELECT "Season", "Color", qtd
 > FROM ranked
 > WHERE rank <= 5
-> ORDER BY "Season", qtd DESC;
+> ORDER BY "Season", qtd DESC, "Color";
 > ```
 
 </details>
@@ -788,10 +798,26 @@ Cada pergunta e respondida com duas abordagens: **Pandas** (Python) e **PostgreS
 <br>
 
 > ```sql
-> WITH quartis AS (
->     SELECT *,
->            NTILE(4) OVER (ORDER BY "Purchase Amount (USD)") AS quartil
+> -- Limites de quartil via PERCENTILE_CONT para replicar o pd.qcut:
+> -- valores iguais ficam sempre no mesmo segmento (faixas sem sobreposicao),
+> -- diferente do NTILE(4), que forca grupos de tamanho identico
+> -- quebrando os empates arbitrariamente.
+> WITH limites AS (
+>     SELECT PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY "Purchase Amount (USD)") AS q1,
+>            PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY "Purchase Amount (USD)") AS q2,
+>            PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY "Purchase Amount (USD)") AS q3
 >     FROM shopping_trends
+> ),
+> quartis AS (
+>     SELECT s.*,
+>            CASE
+>              WHEN s."Purchase Amount (USD)" <= l.q1 THEN 1
+>              WHEN s."Purchase Amount (USD)" <= l.q2 THEN 2
+>              WHEN s."Purchase Amount (USD)" <= l.q3 THEN 3
+>              ELSE 4
+>            END AS quartil
+>     FROM shopping_trends s
+>     CROSS JOIN limites l
 > )
 > SELECT CASE quartil
 >          WHEN 1 THEN 'Economico'
@@ -799,10 +825,10 @@ Cada pergunta e respondida com duas abordagens: **Pandas** (Python) e **PostgreS
 >          WHEN 3 THEN 'Alto'
 >          WHEN 4 THEN 'Premium'
 >        END AS segmento,
->        MIN("Purchase Amount (USD)") || ' - ' ||
+>        '$' || MIN("Purchase Amount (USD)") || ' - $' ||
 >        MAX("Purchase Amount (USD)") AS faixa_valor,
 >        ROUND(AVG("Purchase Amount (USD)")::numeric, 2) AS ticket_medio,
->        ROUND(AVG("Age")::numeric, 1) AS idade_media,
+>        ROUND(AVG("Age")::numeric, 2) AS idade_media,
 >        ROUND(AVG(CASE WHEN "Gender" = 'Male'
 >                       THEN 1 ELSE 0 END) * 100, 2) AS pct_masculino,
 >        ROUND(AVG(CASE WHEN "Subscription Status" = 'Yes'
@@ -810,7 +836,8 @@ Cada pergunta e respondida com duas abordagens: **Pandas** (Python) e **PostgreS
 >        ROUND(AVG(CASE WHEN "Discount Applied" = 'Yes'
 >                       THEN 1 ELSE 0 END) * 100, 2) AS pct_desconto,
 >        ROUND(AVG("Review Rating")::numeric, 2) AS avaliacao_media,
->        ROUND(AVG("Previous Purchases")::numeric, 1) AS compras_anteriores
+>        ROUND(AVG("Previous Purchases")::numeric, 2) AS compras_anteriores,
+>        MODE() WITHIN GROUP (ORDER BY "Category") AS categoria_top
 > FROM quartis
 > GROUP BY quartil
 > ORDER BY quartil;
@@ -818,7 +845,7 @@ Cada pergunta e respondida com duas abordagens: **Pandas** (Python) e **PostgreS
 
 </details>
 
-**Insight:** A segmentacao revela que os quatro quartis tem perfis **notavelmente similares**: idade media (~44 anos), proporcao masculina (~67-70%), taxa de assinatura (~27%), e avaliacao (~3,7). A unica diferenca real e o valor gasto em si (de $29,52 no Economico a $91,09 no Premium). **Clothing** e a categoria favorita em todos os segmentos. Essa homogeneidade sugere que o valor de compra e influenciado mais pelo **produto escolhido** do que pelo perfil demografico do cliente.
+**Insight:** A segmentacao revela que os quatro quartis tem perfis **notavelmente similares**: idade media (~44 anos), proporcao masculina (~66-70%), taxa de assinatura (~27%), e avaliacao (~3,7). A unica diferenca real e o valor gasto em si (de $29,52 no Economico a $91,09 no Premium). **Clothing** e a categoria favorita em todos os segmentos. Essa homogeneidade sugere que o valor de compra e influenciado mais pelo **produto escolhido** do que pelo perfil demografico do cliente.
 
 ---
 
@@ -844,13 +871,15 @@ Esta analise explorou 15 dimensoes dos dados de comportamento de compra de clien
 
 ## Coleta de Dados (Kaggle API)
 
-O notebook **`analise_tendencias.ipynb`** contem um bloco opcional que acessa os dados diretamente pela **API do Kaggle**, sem necessidade de download manual. Os dados sao baixados para um diretorio temporario (`/tmp/shopping_trends`) e carregados em memoria com Pandas — nenhum arquivo permanece salvo em disco.
+O notebook **`analise_tendencias.ipynb`** contem um bloco opcional que acessa os dados diretamente pela **API do Kaggle**, sem necessidade de download manual. Os dados sao baixados para um diretorio temporario (`/tmp/shopping_trends`), fora do repositorio, e carregados em memoria com Pandas.
 
-Para utilizar, crie e configure sua chave de API no arquivo `.env`:
+Para utilizar, crie o arquivo `.env` na raiz do projeto com sua chave de API (gerada em [kaggle.com/settings/api](https://www.kaggle.com/settings/api)):
 
 ```
 KAGGLE_API_TOKEN=seu_token_aqui
 ```
+
+A biblioteca `kaggle` le a variavel de ambiente automaticamente ao autenticar (o `load_dotenv()` do notebook a carrega do `.env`). Alternativamente, o arquivo `~/.kaggle/kaggle.json` tambem e aceito.
 
 > O `.env` deve ser incluido no `.gitignore` para **nao ser enviado ao GitHub**, protegendo suas credenciais.
 
