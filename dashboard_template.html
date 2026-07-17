@@ -1,0 +1,675 @@
+<title>Tendências de Consumo — Dashboard</title>
+<style>
+  :root {
+    color-scheme: light;
+    --paper: #f7f7f4; --card: #fcfcfb; --well: #f1f1ed;
+    --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+    --grid: #e1e0d9; --baseline: #c3c2b7; --ring: rgba(11,11,11,.09);
+    --accent: #2a78d6; --accent-strong: #1c5cab; --accent-soft: #cde2fb;
+    --accent-tint: rgba(42,120,214,.08); --series-2: #e87ba4;
+    --seg-ink-2: #0b0b0b; --shadow: 0 1px 3px rgba(15,15,15,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --paper: #0d0d0d; --card: #1a1a19; --well: #141413;
+      --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+      --grid: #2c2c2a; --baseline: #383835; --ring: rgba(255,255,255,.10);
+      --accent: #3987e5; --accent-strong: #6da7ec; --accent-soft: #1c5cab;
+      --accent-tint: rgba(57,135,229,.14); --series-2: #d55181;
+      --seg-ink-2: #ffffff; --shadow: none;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --paper: #0d0d0d; --card: #1a1a19; --well: #141413;
+    --ink: #ffffff; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --baseline: #383835; --ring: rgba(255,255,255,.10);
+    --accent: #3987e5; --accent-strong: #6da7ec; --accent-soft: #1c5cab;
+    --accent-tint: rgba(57,135,229,.14); --series-2: #d55181;
+    --seg-ink-2: #ffffff; --shadow: none;
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --paper: #f7f7f4; --card: #fcfcfb; --well: #f1f1ed;
+    --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+    --grid: #e1e0d9; --baseline: #c3c2b7; --ring: rgba(11,11,11,.09);
+    --accent: #2a78d6; --accent-strong: #1c5cab; --accent-soft: #cde2fb;
+    --accent-tint: rgba(42,120,214,.08); --series-2: #e87ba4;
+    --seg-ink-2: #0b0b0b; --shadow: 0 1px 3px rgba(15,15,15,.05);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 64px; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .accent-band { height: 3px; background: var(--accent); }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 20px; }
+
+  /* ---------- header ---------- */
+  header { padding: 40px 0 24px; }
+  .eyebrow { font-size: 11px; font-weight: 650; letter-spacing: .16em; text-transform: uppercase; color: var(--accent); margin-bottom: 10px; }
+  h1 { font-size: clamp(26px, 3.4vw, 36px); font-weight: 750; letter-spacing: -.02em; margin: 0 0 10px; text-wrap: balance; }
+  .sub { color: var(--ink-2); max-width: 72ch; margin: 0 0 16px; font-size: 14.5px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { font-size: 12px; padding: 5px 12px; border: 1px solid var(--ring); border-radius: 999px; color: var(--ink-2); background: var(--card); }
+  .chip strong { color: var(--ink); font-weight: 600; }
+
+  /* ---------- sticky nav ---------- */
+  nav { position: sticky; top: 0; z-index: 5; background: color-mix(in srgb, var(--paper) 85%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--grid); }
+  nav .row { display: flex; gap: 4px; padding: 8px 0; overflow-x: auto; scrollbar-width: none; }
+  nav a { flex: none; font-size: 12.5px; font-weight: 550; color: var(--ink-2); text-decoration: none; padding: 6px 13px; border-radius: 999px; }
+  nav a:hover { background: var(--well); }
+  nav a.on { background: var(--accent-tint); color: var(--accent); }
+  nav a:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+  main.wrap { display: flex; flex-direction: column; gap: 44px; padding-top: 28px; padding-bottom: 72px; }
+
+  /* ---------- kpis ---------- */
+  .kpis { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
+  .kpi { background: var(--card); border: 1px solid var(--ring); border-radius: 12px; padding: 16px 18px 14px; box-shadow: var(--shadow); }
+  .kpi .k-label { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .kpi .k-rule { width: 26px; height: 3px; border-radius: 2px; background: var(--accent); margin: 8px 0 10px; }
+  .kpi .k-value { font-size: 27px; font-weight: 700; letter-spacing: -.015em; line-height: 1.1; }
+  .kpi.hero .k-value { font-size: 34px; color: var(--accent); }
+  .kpi .k-note { font-size: 12px; color: var(--ink-2); margin-top: 5px; }
+
+  /* ---------- sections & cards ---------- */
+  section { scroll-margin-top: 64px; }
+  .sec-head { margin-bottom: 16px; }
+  .sec-head h2 { font-size: 20px; font-weight: 700; letter-spacing: -.01em; margin: 0 0 3px; }
+  .sec-head p { margin: 0; font-size: 13px; color: var(--muted); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid > .span2 { grid-column: 1 / -1; }
+  .card { background: var(--card); border: 1px solid var(--ring); border-radius: 12px; padding: 20px 22px 16px; display: flex; flex-direction: column; gap: 13px; box-shadow: var(--shadow); }
+  .tag { align-self: flex-start; font-size: 10.5px; font-weight: 650; letter-spacing: .1em; text-transform: uppercase; color: var(--accent); background: var(--accent-tint); padding: 4px 10px; border-radius: 999px; }
+  .card h3 { font-size: 16px; font-weight: 680; margin: 0; letter-spacing: -.005em; text-wrap: balance; }
+  .finding { font-size: 13px; color: var(--ink-2); margin: 0; }
+  .finding strong { color: var(--ink); font-weight: 620; }
+  .finding code { background: var(--well); border: 1px solid var(--grid); border-radius: 5px; padding: 1px 5px; font-size: 11.5px; }
+
+  /* ---------- horizontal bars ---------- */
+  .hbar { display: flex; flex-direction: column; gap: 6px; }
+  .hb-row { display: grid; grid-template-columns: 118px 1fr; align-items: center; gap: 10px; padding: 2px 4px; border-radius: 6px; outline: none; }
+  .hb-row:hover, .hb-row:focus-visible { background: var(--accent-tint); }
+  .hb-row:focus-visible { outline: 2px solid var(--accent); }
+  .hb-label { font-size: 12.5px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right; }
+  .hb-track { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .hb-bar { height: 14px; background: var(--accent); border-radius: 0 4px 4px 0; flex: none; min-width: 3px; }
+  .lead .hb-bar { background: var(--accent-strong); }
+  .hb-val { font-size: 12px; color: var(--ink-2); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .lead .hb-val { color: var(--ink); font-weight: 600; }
+
+  /* ---------- columns ---------- */
+  .cols { display: flex; align-items: flex-end; gap: 12px; height: 150px; padding-top: 18px; border-bottom: 1px solid var(--baseline); }
+  .col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 5px; min-width: 0; border-radius: 6px; outline: none; }
+  .col:hover, .col:focus-visible { background: var(--accent-tint); }
+  .col:focus-visible { outline: 2px solid var(--accent); }
+  .col .c-val { font-size: 11.5px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  .col .c-bar { width: 100%; max-width: 22px; background: var(--accent); border-radius: 4px 4px 0 0; }
+  .col.lead .c-bar { background: var(--accent-strong); }
+  .col.lead .c-val { color: var(--ink); font-weight: 600; }
+  .col .c-cap { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; padding-bottom: 4px; }
+  .mini-title { font-size: 12px; font-weight: 600; color: var(--muted); margin: 0; }
+  .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+
+  /* ---------- gender split ---------- */
+  .split { display: flex; height: 38px; border-radius: 8px; overflow: hidden; gap: 2px; }
+  .seg { display: flex; align-items: center; padding: 0 13px; font-size: 13px; font-weight: 620; min-width: 0; white-space: nowrap; }
+  .seg.male { background: var(--accent); color: #fff; }
+  .seg.female { background: var(--series-2); color: var(--seg-ink-2); justify-content: flex-end; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12.5px; color: var(--ink-2); }
+  .legend .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+  .pairs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .pair { background: var(--well); border-radius: 9px; padding: 11px 13px; }
+  .pair .p-label { font-size: 11.5px; color: var(--muted); }
+  .pair .p-vals { font-size: 14.5px; font-weight: 620; margin-top: 3px; }
+  .pair .p-vals .vs { color: var(--muted); font-weight: 400; font-size: 12px; padding: 0 4px; }
+
+  /* ---------- season colors ---------- */
+  .seasons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .season { background: var(--well); border-radius: 9px; padding: 12px 14px; }
+  .season h4 { margin: 0 0 9px; font-size: 13px; font-weight: 680; }
+  .swatches { display: flex; flex-direction: column; gap: 6px; }
+  .swatch { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--ink-2); }
+  .swatch .dot { width: 14px; height: 14px; border-radius: 4px; border: 1px solid var(--ring); flex: none; }
+  .swatch .n { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  /* ---------- quartis ---------- */
+  .quartis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .q-card { background: var(--well); border-radius: 10px; padding: 15px 17px; display: flex; flex-direction: column; gap: 9px; }
+  .q-name { font-size: 12px; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .q-range { font-size: 21px; font-weight: 700; color: var(--accent); letter-spacing: -.01em; }
+  .q-meter { height: 6px; border-radius: 3px; background: var(--accent-soft); overflow: hidden; }
+  .q-meter i { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+  .q-card dl { margin: 0; display: grid; grid-template-columns: auto auto; gap: 4px 10px; font-size: 12px; }
+  .q-card dt { color: var(--muted); }
+  .q-card dd { margin: 0; text-align: right; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+
+  /* ---------- details / sql ---------- */
+  details { border-top: 1px solid var(--grid); }
+  summary { cursor: pointer; font-size: 12px; font-weight: 550; color: var(--muted); padding: 9px 0 5px; list-style: none; }
+  summary::before { content: "▸ "; color: var(--accent); }
+  details[open] summary::before { content: "▾ "; }
+  summary:hover { color: var(--accent); }
+  summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+  details pre { background: var(--well); border: 1px solid var(--grid); border-radius: 9px; padding: 13px 15px; font: 12px/1.55 ui-monospace, "Cascadia Code", Consolas, monospace; overflow-x: auto; margin: 8px 0; color: var(--ink-2); }
+  .tbl-wrap { overflow-x: auto; }
+  details table { border-collapse: collapse; font-size: 12px; margin: 8px 0 10px; min-width: 55%; }
+  details th { text-align: left; color: var(--muted); font-weight: 620; padding: 5px 16px 5px 0; border-bottom: 1px solid var(--baseline); }
+  details td { padding: 5px 16px 5px 0; border-bottom: 1px solid var(--grid); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+
+  /* ---------- conclusão / footer ---------- */
+  .banner { background: linear-gradient(0deg, var(--accent-tint), var(--accent-tint)), var(--card); border: 1px solid var(--ring); border-left: 3px solid var(--accent); border-radius: 12px; padding: 22px 26px; }
+  .banner h3 { margin: 0 0 7px; font-size: 17px; }
+  .banner p { margin: 0; color: var(--ink-2); max-width: 92ch; }
+  footer { color: var(--muted); font-size: 12px; border-top: 1px solid var(--grid); padding-top: 18px; }
+  footer p { margin: 5px 0; max-width: 95ch; }
+  footer .chips { margin-top: 10px; }
+
+  /* ---------- tooltip ---------- */
+  #tip { position: fixed; pointer-events: none; background: var(--ink); color: var(--paper); font-size: 12px; padding: 7px 11px; border-radius: 8px; opacity: 0; transition: opacity .1s; z-index: 20; max-width: 270px; line-height: 1.45; }
+  #tip.on { opacity: 1; }
+  @media (prefers-reduced-motion: reduce) { #tip { transition: none; } }
+
+  @media (max-width: 920px) {
+    .kpis { grid-template-columns: repeat(3, 1fr); }
+    .grid, .duo { grid-template-columns: 1fr; }
+    .seasons, .quartis { grid-template-columns: repeat(2, 1fr); }
+    .pairs { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 540px) {
+    .kpis { grid-template-columns: repeat(2, 1fr); }
+    .seasons, .quartis { grid-template-columns: 1fr; }
+    .hb-row { grid-template-columns: 92px 1fr; }
+  }
+</style>
+
+<div class="accent-band"></div>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Análise exploratória · Python · Pandas · PostgreSQL</div>
+    <h1>Tendências de Consumo e Comportamento do Cliente</h1>
+    <p class="sub">3.900 transações de e-commerce, 17 variáveis, 15 perguntas analíticas. Este dashboard é <strong>gerado por um script Python</strong>: o Pandas calcula cada métrica direto do CSV e injeta os resultados nesta página. Cada gráfico traz a query PostgreSQL equivalente — pares verificados, mesmo resultado.</p>
+    <div class="chips">
+      <span class="chip"><strong>3.900</strong> registros · 0 nulos · 0 duplicados</span>
+      <span class="chip"><strong>25</strong> itens · <strong>4</strong> categorias · <strong>50</strong> estados</span>
+      <span class="chip">Paridade Pandas × SQL: <strong>18/18</strong> idênticas</span>
+    </div>
+  </header>
+</div>
+
+<nav><div class="wrap"><div class="row">
+  <a href="#sec-kpis">Visão geral</a>
+  <a href="#sec-receita">Receita e produtos</a>
+  <a href="#sec-demografia">Demografia</a>
+  <a href="#sec-sazonal">Sazonalidade</a>
+  <a href="#sec-operacao">Conversão e operação</a>
+  <a href="#sec-segmentos">Segmentação</a>
+  <a href="#sec-conclusao">Conclusão</a>
+</div></div></nav>
+
+<main class="wrap">
+  <section id="sec-kpis">
+    <div class="kpis" id="kpis"></div>
+  </section>
+
+  <section id="sec-receita">
+    <div class="sec-head"><h2>Receita e produtos</h2><p>Onde o faturamento nasce — e por quê. Perguntas 1, 4 e 10.</p></div>
+    <div class="grid">
+      <div class="card">
+        <span class="tag">Pergunta 1</span>
+        <h3>Clothing concentra 44,7% da receita — por volume, não por preço</h3>
+        <div class="hbar" id="ch-categorias"></div>
+        <p class="finding">O ticket médio é quase igual entre categorias (<strong>$57–60</strong>); a liderança vem das <strong>1.737 transações</strong> de Clothing.</p>
+        <details><summary>SQL + dados</summary><pre>SELECT "Category",
+       SUM("Purchase Amount (USD)") AS receita_total,
+       ROUND(AVG("Purchase Amount (USD)")::numeric, 2) AS ticket_medio,
+       COUNT(*) AS qtd_compras,
+       ROUND(SUM("Purchase Amount (USD)") * 100.0 /
+             (SELECT SUM("Purchase Amount (USD)") FROM shopping_trends), 2) AS participacao_pct
+FROM shopping_trends
+GROUP BY "Category"
+ORDER BY receita_total DESC;</pre><div class="tbl-wrap"><table id="tb-categorias"></table></div></details>
+      </div>
+
+      <div class="card">
+        <span class="tag">Pergunta 4</span>
+        <h3>Demanda pulverizada: os 25 itens vendem entre 124 e 171 unidades</h3>
+        <div class="hbar" id="ch-itens"></div>
+        <p class="finding">Empate triplo no topo (<strong>Blouse, Jewelry e Pants</strong>, 171 cada). Dress tem o maior ticket do top 10 (<strong>$62,17</strong>); Jacket, o menor (<strong>$56,74</strong>).</p>
+        <details><summary>SQL + dados</summary><pre>SELECT "Item Purchased",
+       COUNT(*) AS qtd_vendas,
+       ROUND(AVG("Purchase Amount (USD)")::numeric, 2) AS ticket_medio,
+       SUM("Purchase Amount (USD)") AS receita_total
+FROM shopping_trends
+GROUP BY "Item Purchased"
+ORDER BY qtd_vendas DESC, "Item Purchased"
+LIMIT 10;</pre><div class="tbl-wrap"><table id="tb-itens"></table></div></details>
+      </div>
+
+      <div class="card span2">
+        <span class="tag">Pergunta 10</span>
+        <h3>Receita geográfica sem concentração: Montana lidera com apenas 2,5% do total</h3>
+        <div class="hbar" id="ch-estados"></div>
+        <p class="finding">Os 50 estados dividem a receita de forma quase uniforme. <strong>West Virginia</strong> tem o maior ticket do top 10 (<strong>$63,88</strong>) com o menor volume (81 compras).</p>
+        <details><summary>SQL + dados</summary><pre>SELECT "Location",
+       COUNT(*) AS qtd_compras,
+       SUM("Purchase Amount (USD)") AS receita_total,
+       ROUND(AVG("Purchase Amount (USD)")::numeric, 2) AS ticket_medio
+FROM shopping_trends
+GROUP BY "Location"
+ORDER BY receita_total DESC
+LIMIT 10;</pre><div class="tbl-wrap"><table id="tb-estados"></table></div></details>
+      </div>
+    </div>
+  </section>
+
+  <section id="sec-demografia">
+    <div class="sec-head"><h2>Demografia e comportamento</h2><p>Quem compra, com que idade e com que frequência. Perguntas 2, 3, 11 e 14.</p></div>
+    <div class="grid">
+      <div class="card">
+        <span class="tag">Pergunta 2</span>
+        <h3>Homens são 68% das compras, mas o comportamento individual é idêntico</h3>
+        <div class="split" role="img" aria-label="Divisão por gênero: masculino 68 por cento (2.652 compras), feminino 32 por cento (1.248 compras)">
+          <div class="seg male" style="width:68%">Masculino · 68%</div>
+          <div class="seg female" style="width:32%">32%</div>
+        </div>
+        <div class="legend">
+          <span><i class="sw" style="background:var(--accent)"></i>Masculino — 2.652 compras</span>
+          <span><i class="sw" style="background:var(--series-2)"></i>Feminino — 1.248 compras</span>
+        </div>
+        <div class="pairs" id="pares-genero"></div>
+        <p class="finding">A diferença está no <strong>volume de clientes</strong>, não no gasto por compra.</p>
+        <details><summary>SQL + dados</summary><pre>SELECT "Gender",
+       COUNT(*) AS qtd_compras,
+       ROUND(AVG("Purchase Amount (USD)")::numeric, 2) AS ticket_medio,
+       ROUND(AVG("Review Rating")::numeric, 2) AS avaliacao_media,
+       ROUND(AVG("Previous Purchases")::numeric, 2) AS compras_anteriores
+FROM shopping_trends
+GROUP BY "Gender"
+ORDER BY "Gender";</pre><div class="tbl-wrap"><table id="tb-genero"></table></div></details>
+      </div>
+
+      <div class="card">
+        <span class="tag">Pergunta 3</span>
+        <h3>A faixa 56–70 anos é a mais ativa (28,3% das compras)</h3>
+        <div class="cols" id="ch-idades"></div>
+        <p class="finding">O ticket médio é uniforme entre faixas (<strong>$59–61</strong>): a idade influencia a frequência, não o valor por transação.</p>
+        <details><summary>SQL + dados</summary><pre>SELECT CASE
+         WHEN "Age" BETWEEN 18 AND 25 THEN '18-25'
+         WHEN "Age" BETWEEN 26 AND 35 THEN '26-35'
+         WHEN "Age" BETWEEN 36 AND 45 THEN '36-45'
+         WHEN "Age" BETWEEN 46 AND 55 THEN '46-55'
+         ELSE '56-70'
+       END AS faixa_etaria,
+       COUNT(*) AS qtd_compras,
+       ROUND(AVG("Purchase Amount (USD)")::numeric, 2) AS ticket_medio,
+       SUM("Purchase Amount (USD)") AS valor_total
+FROM shopping_trends
+GROUP BY faixa_etaria
+ORDER BY faixa_etaria;</pre><div class="tbl-wrap"><table id="tb-idades"></table></div></details>
+      </div>
+
+      <div class="card">
+        <span class="tag">Pergunta 11</span>
+        <h3>Frequência de compra não muda o ticket ($58,97–$60,69)</h3>
+        <div class="cols" id="ch-frequencia"></div>
+        <p class="finding">Grupos equilibrados (539–584 clientes). Nota de qualidade: <strong>Bi-Weekly ≈ Fortnightly</strong> e <strong>Quarterly ≈ Every 3 Months</strong> são rótulos redundantes.</p>
+        <details><summary>SQL + dados</summary><pre>SELECT "Frequency of Purchases",
+       COUNT(*) AS qtd_clientes,
+       ROUND(AVG("Purchase Amount (USD)")::numeric, 2) AS ticket_medio
+FROM shopping_trends
+GROUP BY "Frequency of Purchases"
+ORDER BY CASE "Frequency of Purchases"
+    WHEN 'Weekly' THEN 1 WHEN 'Bi-Weekly' THEN 2
+    WHEN 'Fortnightly' THEN 3 WHEN 'Monthly' THEN 4
+    WHEN 'Quarterly' THEN 5 WHEN 'Every 3 Months' THEN 6
+    WHEN 'Annually' THEN 7 END;</pre><div class="tbl-wrap"><table id="tb-frequencia"></table></div></details>
+      </div>
+
+      <div class="card">
+        <span class="tag">Pergunta 14</span>
+        <h3>Fidelidade quase não prevê assinatura: sobe até 29,5% e cai</h3>
+        <div class="cols" id="ch-fidelidade"></div>
+        <p class="finding">% de assinantes por faixa de compras anteriores. A tendência sobe até 31–40 e <strong>quebra na faixa 41–50</strong> — histórico sozinho não é bom preditor.</p>
+        <details><summary>SQL + dados</summary><pre>SELECT CASE
+         WHEN "Previous Purchases" BETWEEN 1 AND 10 THEN '1-10'
+         WHEN "Previous Purchases" BETWEEN 11 AND 20 THEN '11-20'
+         WHEN "Previous Purchases" BETWEEN 21 AND 30 THEN '21-30'
+         WHEN "Previous Purchases" BETWEEN 31 AND 40 THEN '31-40'
+         ELSE '41-50'
+       END AS faixa_compras,
+       COUNT(*) AS total_clientes,
+       ROUND(AVG(CASE WHEN "Subscription Status" = 'Yes'
+                      THEN 1 ELSE 0 END) * 100, 2) AS pct_assinantes
+FROM shopping_trends
+GROUP BY faixa_compras
+ORDER BY faixa_compras;</pre><div class="tbl-wrap"><table id="tb-fidelidade"></table></div></details>
+      </div>
+    </div>
+  </section>
+
+  <section id="sec-sazonal">
+    <div class="sec-head"><h2>Sazonalidade</h2><p>Estações, volume e preferências de cor. Perguntas 5 e 13.</p></div>
+    <div class="grid">
+      <div class="card">
+        <span class="tag">Pergunta 5</span>
+        <h3>Spring lidera em volume; Fall, em receita e ticket</h3>
+        <div class="duo">
+          <div><p class="mini-title">Compras por estação</p><div class="cols" id="ch-estacoes-qtd"></div></div>
+          <div><p class="mini-title">Ticket médio (US$)</p><div class="cols" id="ch-estacoes-ticket"></div></div>
+        </div>
+        <p class="finding">Variação pequena entre estações (999 vs 955 compras): <strong>não há sazonalidade marcante</strong> — consumo estável o ano todo.</p>
+        <details><summary>SQL + dados</summary><pre>SELECT "Season",
+       COUNT(*) AS qtd_compras,
+       SUM("Purchase Amount (USD)") AS receita_total,
+       ROUND(AVG("Purchase Amount (USD)")::numeric, 2) AS ticket_medio
+FROM shopping_trends
+GROUP BY "Season"
+ORDER BY qtd_compras DESC;</pre><div class="tbl-wrap"><table id="tb-estacoes"></table></div></details>
+      </div>
+
+      <div class="card">
+        <span class="tag">Pergunta 13</span>
+        <h3>Cada estação tem sua paleta: as 5 cores mais vendidas</h3>
+        <div class="seasons" id="ch-cores"></div>
+        <p class="finding"><strong>Silver no verão</strong> é o maior pico individual (59 vendas). <strong>Olive</strong> aparece no top de duas estações — a escolha mais versátil.</p>
+        <details><summary>SQL</summary><pre>WITH ranked AS (
+    SELECT "Season", "Color", COUNT(*) AS qtd,
+           ROW_NUMBER() OVER (
+               PARTITION BY "Season"
+               ORDER BY COUNT(*) DESC, "Color"
+           ) AS rank
+    FROM shopping_trends
+    GROUP BY "Season", "Color"
+)
+SELECT "Season", "Color", qtd
+FROM ranked
+WHERE rank <= 5
+ORDER BY "Season", qtd DESC, "Color";</pre></details>
+      </div>
+    </div>
+  </section>
+
+  <section id="sec-operacao">
+    <div class="sec-head"><h2>Conversão e operação</h2><p>Assinatura, promoções, pagamento e entrega. Perguntas 6, 7, 8, 9 e 12.</p></div>
+    <div class="grid">
+      <div class="card">
+        <span class="tag">Pergunta 6</span>
+        <h3>Assinatura não gera diferencial mensurável</h3>
+        <div class="pairs" id="pares-assinatura"></div>
+        <p class="finding">Só <strong>27%</strong> assinam (1.053 de 3.900) e o comportamento é idêntico ao dos demais — a proposta de valor da assinatura é uma <strong>oportunidade clara de melhoria</strong>.</p>
+        <details><summary>SQL + dados</summary><pre>SELECT "Subscription Status",
+       COUNT(*) AS qtd_clientes,
+       ROUND(AVG("Purchase Amount (USD)")::numeric, 2) AS ticket_medio,
+       ROUND(AVG("Review Rating")::numeric, 2) AS avaliacao_media
+FROM shopping_trends
+GROUP BY "Subscription Status"
+ORDER BY "Subscription Status";</pre><div class="tbl-wrap"><table id="tb-assinatura"></table></div></details>
+      </div>
+
+      <div class="card">
+        <span class="tag">Perguntas 7 e 9</span>
+        <h3>Nem desconto nem preço movem a satisfação</h3>
+        <div class="pairs" id="pares-desconto"></div>
+        <p class="finding">As 1.677 compras com desconto usaram promo code — e vice-versa. Diferença de ticket de <strong>$0,85</strong>; correlação entre valor pago e avaliação <strong>praticamente nula</strong>.</p>
+        <details><summary>SQL + dados</summary><pre>SELECT "Discount Applied", "Promo Code Used",
+       COUNT(*) AS qtd_compras,
+       ROUND(AVG("Purchase Amount (USD)")::numeric, 2) AS ticket_medio
+FROM shopping_trends
+GROUP BY "Discount Applied", "Promo Code Used"
+ORDER BY ticket_medio DESC;
+
+SELECT ROUND(CORR("Review Rating", "Purchase Amount (USD)")::numeric, 4)
+       AS correlacao
+FROM shopping_trends;</pre><div class="tbl-wrap"><table id="tb-desconto"></table></div></details>
+      </div>
+
+      <div class="card">
+        <span class="tag">Pergunta 8</span>
+        <h3>Nenhum método de pagamento domina (15,7%–17,4%)</h3>
+        <div class="hbar" id="ch-pagamento"></div>
+        <p class="finding"><strong>Debit Card</strong> tem o maior ticket ($60,92); <strong>Venmo</strong>, o menor ($58,95). A dispersão reforça manter <strong>todos os gateways ativos</strong>.</p>
+        <details><summary>SQL + dados</summary><pre>SELECT "Payment Method",
+       COUNT(*) AS qtd_compras,
+       ROUND(AVG("Purchase Amount (USD)")::numeric, 2) AS ticket_medio,
+       ROUND(COUNT(*) * 100.0 /
+             (SELECT COUNT(*) FROM shopping_trends), 2) AS participacao_pct
+FROM shopping_trends
+GROUP BY "Payment Method"
+ORDER BY qtd_compras DESC;</pre><div class="tbl-wrap"><table id="tb-pagamento"></table></div></details>
+      </div>
+
+      <div class="card">
+        <span class="tag">Pergunta 12</span>
+        <h3>Frete: expectativa alinhada vale mais que velocidade</h3>
+        <div class="hbar" id="ch-frete"></div>
+        <p class="finding"><strong>Free Shipping</strong> lidera (17,3%), mas o frete <strong>Standard</strong> — o mais lento — tem a melhor avaliação média (<strong>3,82</strong>).</p>
+        <details><summary>SQL + dados</summary><pre>SELECT "Shipping Type",
+       COUNT(*) AS qtd_compras,
+       ROUND(AVG("Purchase Amount (USD)")::numeric, 2) AS ticket_medio,
+       ROUND(AVG("Review Rating")::numeric, 2) AS avaliacao_media
+FROM shopping_trends
+GROUP BY "Shipping Type"
+ORDER BY qtd_compras DESC;</pre><div class="tbl-wrap"><table id="tb-frete"></table></div></details>
+      </div>
+    </div>
+  </section>
+
+  <section id="sec-segmentos">
+    <div class="sec-head"><h2>Segmentação por gasto</h2><p>Quartis de valor de compra e o perfil de cada segmento. Pergunta 15.</p></div>
+    <div class="grid">
+      <div class="card span2">
+        <span class="tag">Pergunta 15</span>
+        <h3>Quatro quartis de gasto, um único perfil de cliente</h3>
+        <div class="quartis" id="ch-quartis"></div>
+        <p class="finding">Idade, gênero, assinatura e avaliação são praticamente iguais nos quatro segmentos — e <strong>Clothing lidera em todos</strong>. O valor da compra depende do <strong>produto escolhido</strong>, não do perfil demográfico. Quartis via <code>pd.qcut</code>, replicados em SQL com <code>PERCENTILE_CONT</code>.</p>
+        <details><summary>SQL</summary><pre>WITH limites AS (
+    SELECT PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY "Purchase Amount (USD)") AS q1,
+           PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY "Purchase Amount (USD)") AS q2,
+           PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY "Purchase Amount (USD)") AS q3
+    FROM shopping_trends
+),
+quartis AS (
+    SELECT s.*,
+           CASE
+             WHEN s."Purchase Amount (USD)" &lt;= l.q1 THEN 1
+             WHEN s."Purchase Amount (USD)" &lt;= l.q2 THEN 2
+             WHEN s."Purchase Amount (USD)" &lt;= l.q3 THEN 3
+             ELSE 4
+           END AS quartil
+    FROM shopping_trends s
+    CROSS JOIN limites l
+)
+SELECT CASE quartil WHEN 1 THEN 'Economico' WHEN 2 THEN 'Moderado'
+                    WHEN 3 THEN 'Alto' ELSE 'Premium' END AS segmento,
+       '$' || MIN("Purchase Amount (USD)") || ' - $' ||
+       MAX("Purchase Amount (USD)") AS faixa_valor,
+       ROUND(AVG("Purchase Amount (USD)")::numeric, 2) AS ticket_medio,
+       MODE() WITHIN GROUP (ORDER BY "Category") AS categoria_top
+FROM quartis
+GROUP BY quartil
+ORDER BY quartil;</pre></details>
+      </div>
+    </div>
+  </section>
+
+  <section id="sec-conclusao">
+    <div class="banner">
+      <h3>Conclusão geral</h3>
+      <p>O dataset apresenta distribuições <strong>surpreendentemente uniformes</strong> em quase todas as dimensões: gênero, idade, frequência, pagamento, frete e estação não são fortes preditores do valor de compra. Para modelagem preditiva eficaz seria necessário coletar sinais adicionais — histórico de navegação, tempo no site, campanhas vistas. Enquanto isso, as alavancas mais promissoras são <strong>reformular a proposta da assinatura</strong> (27% de adesão sem diferencial de comportamento) e a <strong>curadoria de cores por coleção sazonal</strong>.</p>
+    </div>
+  </section>
+
+  <footer>
+    <p><strong>Método.</strong> Dashboard gerado por <code>gerar_dashboard.py</code>: o Pandas lê o CSV, calcula as métricas das 15 perguntas e injeta os resultados nesta página. Queries PostgreSQL equivalentes documentadas em cada cartão; paridade verificada — 18/18 comparações idênticas, incluindo ordem e desempates.</p>
+    <p>Fonte: Kaggle · Shopping Trends and Customer Behaviour Dataset · 3.900 registros × 17 colunas · valores em US$.</p>
+    <div class="chips"><span class="chip">Python</span><span class="chip">Pandas</span><span class="chip">PostgreSQL</span><span class="chip">Jupyter</span></div>
+  </footer>
+</main>
+
+<div id="tip" role="status" aria-hidden="true"></div>
+
+<script>
+  const D = __DATA__;
+  const HEX = { Magenta:"#c2447e", Yellow:"#e3b422", Olive:"#7a7a2e", Orange:"#dd7633", Gray:"#8a8a86",
+    Teal:"#2e8a8a", Violet:"#8461c9", Pink:"#e08cb0", Silver:"#b4b8bf", Blue:"#4472c9", Green:"#4e8a4e",
+    White:"#f2f2ee", Peach:"#eebc96", Maroon:"#7d3644", Black:"#2b2b2b", Red:"#c24444", Purple:"#8a4e9e",
+    Brown:"#8a5c3a", Beige:"#d9c9a8", Cyan:"#3aa6b8", Charcoal:"#4a4a48", Gold:"#c9a227", Lavender:"#b49ad6",
+    Turquoise:"#3ab8a8", Indigo:"#4e5aa8" };
+
+  const fi = n => Math.round(n).toLocaleString("pt-BR");
+  const fd = n => n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const usd = n => "$" + fi(n);
+
+  /* ---------- kpis ---------- */
+  const K = D.kpis_fmt;
+  document.getElementById("kpis").innerHTML = [
+    ["hero", "Receita total", K.receita, "soma das " + K.transacoes + " compras"],
+    ["", "Transações", K.transacoes, "1 por cliente"],
+    ["", "Ticket médio", K.ticket, "faixa $20–$100"],
+    ["", "Avaliação média", K.avaliacao, "escala 2,5–5,0"],
+    ["", "Assinantes", K.ass_pct, K.ass_n + " clientes"],
+    ["", "Com desconto", K.desc_pct, K.desc_n + " · sempre com promo code"],
+  ].map(([cls, l, v, n]) => `<div class="kpi ${cls}"><div class="k-label">${l}</div><div class="k-rule"></div><div class="k-value">${v}</div><div class="k-note">${n}</div></div>`).join("");
+
+  /* ---------- renderizadores ---------- */
+  function hbar(id, rows) {
+    const max = Math.max(...rows.map(r => r.v));
+    document.getElementById(id).innerHTML = rows.map(r => `
+      <div class="hb-row${r.v === max ? " lead" : ""}" tabindex="0" data-tip="${r.tip}">
+        <span class="hb-label">${r.l}</span>
+        <span class="hb-track"><span class="hb-bar" style="width:${(r.v / max * 64).toFixed(1)}%"></span>
+        <span class="hb-val">${r.txt}</span></span></div>`).join("");
+  }
+  function cols(id, rows) {
+    const max = Math.max(...rows.map(r => r.v));
+    document.getElementById(id).innerHTML = rows.map(r => `
+      <div class="col${r.v === max ? " lead" : ""}" tabindex="0" data-tip="${r.tip}">
+        <span class="c-val">${r.txt}</span>
+        <span class="c-bar" style="height:${(r.v / max * 100).toFixed(1)}%"></span>
+        <span class="c-cap">${r.l}</span></div>`).join("");
+  }
+  function pares(id, lista) {
+    document.getElementById(id).innerHTML = lista.map(([l, a, b]) => `
+      <div class="pair"><div class="p-label">${l}</div><div class="p-vals">${a}${b ? ' <span class="vs">vs</span> ' + b : ""}</div></div>`).join("");
+  }
+  function tabela(id, head, rows) {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = "<thead><tr>" + head.map(h => `<th>${h}</th>`).join("") +
+      "</tr></thead><tbody>" + rows.map(r => "<tr>" + r.map(c => `<td>${c}</td>`).join("") + "</tr>").join("") + "</tbody>";
+  }
+
+  /* ---------- gráficos a partir dos dados do Pandas ---------- */
+  hbar("ch-categorias", D.categorias.map(r => ({ l: r.Category, v: r.receita,
+    txt: usd(r.receita) + " · " + fd(r.pct).replace(",00", "") + "%",
+    tip: `${fi(r.qtd)} compras · ticket $${fd(r.ticket)} · ${fd(r.pct)}% da receita` })));
+  hbar("ch-itens", D.itens.map(r => ({ l: r["Item Purchased"], v: r.qtd, txt: fi(r.qtd),
+    tip: `${r.qtd} vendas · ticket $${fd(r.ticket)} · receita ${usd(r.receita)}` })));
+  hbar("ch-estados", D.estados.map(r => ({ l: r.Location, v: r.receita, txt: usd(r.receita),
+    tip: `${r.qtd} compras · ticket $${fd(r.ticket)}` })));
+  hbar("ch-pagamento", D.pagamento.map(r => ({ l: r["Payment Method"], v: r.qtd,
+    txt: `${fi(r.qtd)} · ${fd(r.pct)}%`, tip: `${r.qtd} compras · ticket $${fd(r.ticket)}` })));
+  hbar("ch-frete", D.frete.map(r => ({ l: r["Shipping Type"], v: r.qtd,
+    txt: `${fi(r.qtd)} · ${fd(r.pct)}%`, tip: `${r.qtd} compras · ticket $${fd(r.ticket)} · avaliação ${fd(r.aval)}` })));
+
+  cols("ch-idades", D.idades.map(r => ({ l: r.faixa, v: r.qtd, txt: fi(r.qtd),
+    tip: `${fi(r.qtd)} compras · ticket $${fd(r.ticket)} · total ${usd(r.total)}` })));
+  cols("ch-frequencia", D.frequencia.map(r => ({ l: r.freq.replace("Every 3 Months", "3 Months"), v: r.qtd,
+    txt: fi(r.qtd), tip: `${r.freq} · ${r.qtd} clientes · ticket $${fd(r.ticket)}` })));
+  cols("ch-fidelidade", D.fidelidade.map(r => ({ l: r.faixa, v: r.pct, txt: fd(r.pct) + "%",
+    tip: `${fi(r.n)} clientes · ${fd(r.pct)}% assinantes` })));
+  cols("ch-estacoes-qtd", D.estacoes.map(r => ({ l: r.Season, v: r.qtd, txt: fi(r.qtd),
+    tip: `${fi(r.qtd)} compras · receita ${usd(r.receita)}` })));
+  cols("ch-estacoes-ticket", D.estacoes.map(r => ({ l: r.Season, v: r.ticket, txt: fd(r.ticket),
+    tip: `Ticket médio $${fd(r.ticket)}` })));
+
+  const ordemEstacoes = ["Fall", "Spring", "Summer", "Winter"];
+  document.getElementById("ch-cores").innerHTML = ordemEstacoes.map(s => `
+    <div class="season"><h4>${s}</h4><div class="swatches">${D.cores[s].map(([c, n]) => `
+      <div class="swatch"><span class="dot" style="background:${HEX[c] || "#999"}"></span>${c}<span class="n">${n}</span></div>`).join("")}
+    </div></div>`).join("");
+
+  const g = Object.fromEntries(D.genero.map(r => [r.Gender, r]));
+  pares("pares-genero", [
+    ["Ticket médio", "$" + fd(g.Male.ticket), "$" + fd(g.Female.ticket)],
+    ["Avaliação média", fd(g.Male.aval), fd(g.Female.aval)],
+    ["Compras anteriores", fd(g.Male.prev), fd(g.Female.prev)]]);
+  const a = Object.fromEntries(D.comp.assinatura.map(r => [r["Subscription Status"], r]));
+  pares("pares-assinatura", [
+    ["Ticket (assinante vs não)", "$" + fd(a.Yes.ticket), "$" + fd(a.No.ticket)],
+    ["Avaliação média", fd(a.Yes.aval), fd(a.No.aval)],
+    ["Compras anteriores", fd(a.Yes.prev), fd(a.No.prev)]]);
+  pares("pares-desconto", [
+    ["Ticket sem vs com desconto", "$" + fd(D.comp.desconto.No), "$" + fd(D.comp.desconto.Yes)],
+    ["Correlação avaliação × valor", "r = " + String(D.comp.corr).replace(".", ",")],
+    ["Desconto e promo code", "100% juntos"]]);
+
+  document.getElementById("ch-quartis").innerHTML = D.quartis.map((q, i) => `
+    <div class="q-card"><div class="q-name">${q.nome}</div>
+      <div class="q-range">$${q.vmin} – $${q.vmax}</div>
+      <div class="q-meter"><i style="width:${(i + 1) * 25}%"></i></div>
+      <dl><dt>Ticket médio</dt><dd>$${fd(q.ticket)}</dd>
+      <dt>Idade média</dt><dd>${fd(q.idade)}</dd>
+      <dt>% masculino</dt><dd>${fd(q.masc)}%</dd>
+      <dt>% assinantes</dt><dd>${fd(q.ass)}%</dd>
+      <dt>Avaliação</dt><dd>${fd(q.aval)}</dd></dl></div>`).join("");
+
+  /* ---------- tabelas ---------- */
+  tabela("tb-categorias", ["Categoria", "Receita", "Ticket", "Compras", "%"],
+    D.categorias.map(r => [r.Category, usd(r.receita), "$" + fd(r.ticket), fi(r.qtd), fd(r.pct) + "%"]));
+  tabela("tb-itens", ["Item", "Vendas", "Ticket", "Receita"],
+    D.itens.map(r => [r["Item Purchased"], r.qtd, "$" + fd(r.ticket), usd(r.receita)]));
+  tabela("tb-estados", ["Estado", "Receita", "Compras", "Ticket"],
+    D.estados.map(r => [r.Location, usd(r.receita), r.qtd, "$" + fd(r.ticket)]));
+  tabela("tb-genero", ["Gênero", "Compras", "Ticket", "Avaliação", "Compras ant."],
+    D.genero.map(r => [r.Gender, fi(r.qtd), "$" + fd(r.ticket), fd(r.aval), fd(r.prev)]));
+  tabela("tb-idades", ["Faixa", "Compras", "Ticket", "Total"],
+    D.idades.map(r => [r.faixa, fi(r.qtd), "$" + fd(r.ticket), usd(r.total)]));
+  tabela("tb-frequencia", ["Frequência", "Clientes", "Ticket"],
+    D.frequencia.map(r => [r.freq, r.qtd, "$" + fd(r.ticket)]));
+  tabela("tb-fidelidade", ["Compras anteriores", "Clientes", "% assinantes"],
+    D.fidelidade.map(r => [r.faixa, r.n, fd(r.pct) + "%"]));
+  tabela("tb-estacoes", ["Estação", "Compras", "Receita", "Ticket"],
+    D.estacoes.map(r => [r.Season, fi(r.qtd), usd(r.receita), "$" + fd(r.ticket)]));
+  tabela("tb-assinatura", ["Assinatura", "Clientes", "Ticket", "Avaliação"],
+    D.comp.assinatura.map(r => [r["Subscription Status"], fi(r.qtd), "$" + fd(r.ticket), fd(r.aval)]));
+  tabela("tb-desconto", ["Desconto", "Promo code", "Ticket médio"],
+    [["No", "No", "$" + fd(D.comp.desconto.No)], ["Yes", "Yes", "$" + fd(D.comp.desconto.Yes)]]);
+  tabela("tb-pagamento", ["Método", "Compras", "Ticket", "%"],
+    D.pagamento.map(r => [r["Payment Method"], r.qtd, "$" + fd(r.ticket), fd(r.pct) + "%"]));
+  tabela("tb-frete", ["Frete", "Compras", "Ticket", "Avaliação"],
+    D.frete.map(r => [r["Shipping Type"], r.qtd, "$" + fd(r.ticket), fd(r.aval)]));
+
+  /* ---------- tooltip (hover + teclado) ---------- */
+  const tip = document.getElementById("tip");
+  let tipOn = null;
+  function showTip(el, x, y) {
+    tip.textContent = el.dataset.tip;
+    tip.classList.add("on"); tip.setAttribute("aria-hidden", "false");
+    const w = tip.offsetWidth, h = tip.offsetHeight;
+    tip.style.left = Math.min(Math.max(8, x + 14), innerWidth - w - 8) + "px";
+    tip.style.top = Math.min(Math.max(8, y - h - 10), innerHeight - h - 8) + "px";
+  }
+  function hideTip() { tip.classList.remove("on"); tip.setAttribute("aria-hidden", "true"); tipOn = null; }
+  addEventListener("pointermove", e => {
+    const el = e.target.closest("[data-tip]");
+    if (el) { tipOn = el; showTip(el, e.clientX, e.clientY); } else if (tipOn) hideTip();
+  });
+  addEventListener("focusin", e => {
+    const el = e.target.closest("[data-tip]");
+    if (el) { const r = el.getBoundingClientRect(); showTip(el, r.left + r.width / 2, r.top); }
+  });
+  addEventListener("focusout", hideTip);
+  addEventListener("scroll", hideTip, { passive: true });
+
+  /* ---------- navegação ativa ---------- */
+  const links = [...document.querySelectorAll("nav a")];
+  const byId = Object.fromEntries(links.map(l => [l.getAttribute("href").slice(1), l]));
+  const io = new IntersectionObserver(es => es.forEach(e => {
+    if (e.isIntersecting) { links.forEach(l => l.classList.remove("on")); byId[e.target.id]?.classList.add("on"); }
+  }), { rootMargin: "-20% 0px -70% 0px" });
+  document.querySelectorAll("main section").forEach(s => io.observe(s));
+</script>
